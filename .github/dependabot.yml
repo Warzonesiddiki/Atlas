@@ -1,0 +1,34 @@
+# Dependabot configuration for Atlas
+# Keeps GitHub Actions and the sxsc Python dependencies up to date.
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "actions"
+    commit-message:
+      prefix: "chore(ci):"
+      include: "scope"
+    groups:
+      actions-minor:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "pip"
+    directory: "/src/dependencies/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "sxsc"
+    commit-message:
+      prefix: "chore(sxsc):"

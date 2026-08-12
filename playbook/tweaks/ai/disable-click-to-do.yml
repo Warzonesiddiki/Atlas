@@ -1,0 +1,18 @@
+---
+title: Disable Click to Do
+description: |
+  Disables Click to Do, the Copilot+ PC feature that sends selected text/images
+  to Copilot for AI actions. Uses Group Policy; on builds where the policy
+  doesn't exist this is a safe no-op.
+sources:
+  - https://learn.microsoft.com/en-us/windows/ai/
+appliesTo:
+  minBuild: 26100
+  maxBuild: 99999
+actions:
+  - !writeStatus: {status: 'Disabling Click to Do'}
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'
+    value: 'DisableClickToDo'
+    data: '1'
+    type: REG_DWORD

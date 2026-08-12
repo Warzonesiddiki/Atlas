@@ -1,0 +1,24 @@
+---
+title: Disable Windows AI Fabric Service
+description: |
+  Disables the Windows AI Fabric service (background AI/NPU service introduced
+  in 24H2/25H2). If the service does not exist on a given build, the tweak is
+  a safe no-op.
+sources:
+  - https://learn.microsoft.com/en-us/windows/ai/
+appliesTo:
+  minBuild: 26100
+  maxBuild: 99999
+actions:
+  - !writeStatus: {status: 'Disabling Windows AI Fabric service (if present)'}
+  - !powerShell:
+    command: |
+      foreach ($n in @('AIFabricSvc','WindowsAIFabric','AIFabric')) {
+          $svc = Get-Service -Name $n -ErrorAction SilentlyContinue
+          if ($svc) {
+              Stop-Service -Name $n -Force -ErrorAction SilentlyContinue
+              Set-Service -Name $n -StartupType Disabled
+          }
+      }
+    wait: true
+    runas: currentUserElevated

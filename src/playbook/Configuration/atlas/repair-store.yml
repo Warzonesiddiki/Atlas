@@ -1,0 +1,75 @@
+---
+title: Repair Microsoft Store ACLs (OEM fix)
+description: |
+  OEM images sometimes ship with broken permissions on WindowsApps and on
+  Microsoft.Store/AppX packages, causing Store to crash at launch or refuse
+  to install/update apps (issue #1353). This resets the ACLs on the critical
+  Store package folders and re-registers the Store AppX for all users.
+  Runs idempotently; only acts if the Store package is present.
+actions:
+  - !writeStatus: {status: 'Repairing Microsoft Store ACLs (OEM fix)'}
+  - !powerShell:
+    command: |
+      $ErrorActionPreference = 'SilentlyContinue'
+
+      function Test-StoreAclHealthy {
+          $pkg = Get-AppxPackage -Name 'Microsoft.WindowsStore' -AllUsers | Select-Object -First 1
+          if (-not $pkg) { return $true } # nothing to repair
+          $install = $pkg.InstallLocation
+          if (-not (Test-Path $install)) { return $false }
+          try {
+              $acl = Get-Acl $install -ErrorAction Stop
+              # All Application Packages (S-1-15-2-1) must have at least Read & Execute
+              $sid = New-Object System.Security.Principal.SecurityIdentifier('S-1-15-2-1')
+              $rules = $acl.Access | Where-Object {
+                  $_.IdentityReference -eq $sid.Translate([System.Security.Principal.NTAccount]) -and
+                  $_.FileSystemRights -band [System.Security.AccessControl.FileSystemRights]::ReadAndExecute
+              }
+              return ($rules.Count -gt 0)
+          } catch {
+              return $false
+          }
+      }
+
+      if (Test-StoreAclHealthy) {
+          Write-Host 'Store ACLs look healthy; skipping repair.'
+          return
+      }
+
+      Write-Host 'OEM Store ACL issue detected; repairing...'
+
+      $programs = Join-Path $env:ProgramFiles 'WindowsApps'
+      if (Test-Path $programs) {
+          # Reset the WindowsApps root ACL to default known-good state:
+          # OWNER RIGHTS / SYSTEM / Administrators / ALL APPLICATION PACKAGES
+          & icacls $programs /reset /T /C /Q | Out-Null
+          & icacls $programs /setowner 'NT SERVICE\TrustedInstaller' /T /C /Q | Out-Null
+          & icacls $programs /grant '*S-1-15-2-1:(RX)' /T /C /Q | Out-Null
+      }
+
+      # Re-register the Store AppX for all users
+      $store = Get-AppxPackage -Name 'Microsoft.WindowsStore' -AllUsers | Select-Object -First 1
+      if ($store) {
+          $manifest = Join-Path $store.InstallLocation 'AppxManifest.xml'
+          if (Test-Path $manifest) {
+              & PowerShell -NoP -NonI -Command "Add-AppxPackage -DisableDevelopmentMode -Register '$manifest' -ForceApplicationShutdown" | Out-Null
+          }
+      }
+
+      # Also fix common dependency packages
+      foreach ($dep in @(
+          'Microsoft.StorePurchaseApp',
+          'Microsoft.Services.Store.Engagement',
+          'Microsoft.DesktopAppInstaller'
+      )) {
+          $d = Get-AppxPackage -Name $dep -AllUsers | Select-Object -First 1
+          if (-not $d) { continue }
+          $dm = Join-Path $d.InstallLocation 'AppxManifest.xml'
+          if (Test-Path $dm) {
+              & PowerShell -NoP -NonI -Command "Add-AppxPackage -DisableDevelopmentMode -Register '$dm' -ForceApplicationShutdown" | Out-Null
+          }
+      }
+
+      Write-Host 'Store ACL repair complete.'
+    wait: true
+    runas: currentUserElevated

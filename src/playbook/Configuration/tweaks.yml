@@ -27,6 +27,10 @@ actions:
   # Needed for compatibility
   # - !task: {path: 'tweaks\networking\disable-llmnr.yml'}
   - !task: {path: 'tweaks\networking\atlas-network-settings.yml'}
+  # Disable legacy SMB 1.0 (CVE-2017-014x family); safe opt-in, revert from Windows Features
+  - !task: {path: 'tweaks\networking\disable-smb1.yml', option: 'disable-smb1'}
+  # Hardened: LLMNR/NetBIOS-NS disabled to prevent NTLM relay (Security profile / opt-in)
+  - !task: {path: 'tweaks\networking\block-llmnr-nbt-ns.yml', option: 'harden-networking'}
 
   # -------------------------------------------------------------------------- #
   #  networking\shares                                                         #
@@ -54,13 +58,15 @@ actions:
   - !task: {path: 'tweaks\performance\disable-fth.yml'}
   - !task: {path: 'tweaks\performance\disable-sleep-study.yml'}
   - !task: {path: 'tweaks\performance\respect-power-modes-search.yml'}
+  # Gaming/latency package (timer res, HAGS, core parking); gated by 'gaming-performance' option
+  - !task: {path: 'tweaks\gaming\gaming.yml'}
 
 
   # -------------------------------------------------------------------------- #
   #  performance\system                                                        #
   # -------------------------------------------------------------------------- #
-  # Disabled as there's no evidence it helps (likely placebo)
-  # - !task: {path: 'tweaks\performance\system\disable-paging.yml'}
+  # Paging-executive disable moved to opt-in (gaming-performance) after #1406.
+  - !task: {path: 'tweaks\performance\system\disable-paging.yml'}
   - !task: {path: 'tweaks\performance\system\optimize-ntfs.yml'}
   - !task: {path: 'tweaks\performance\system\disable-service-host-split.yml'}
   - !task: {path: 'tweaks\performance\system\win32-priority-separation.yml'}
@@ -129,6 +135,11 @@ actions:
   - !task: {path: 'tweaks\privacy\telemetry\disable-dotnet-cli-telemetry.yml'}
   - !task: {path: 'tweaks\privacy\telemetry\disable-input-telemetry.yml'}
   - !task: {path: 'tweaks\privacy\telemetry\disallow-data-collection.yml'}
+
+  # -------------------------------------------------------------------------- #
+  #  AI features (Recall, Copilot, Click to Do, AI Actions, WindowsAIFabric)  #
+  # -------------------------------------------------------------------------- #
+  - !task: {path: 'tweaks\ai\ai.yml'}
 
 
 
@@ -305,6 +316,11 @@ actions:
   - !writeStatus: {status: 'Running security tweaks'}
   - !task: {path: 'tweaks\security\block-anonymous-enum-sam.yml'}
   - !task: {path: 'tweaks\security\disable-remote-assistance.yml'}
+
+  # Enterprise / hardening baseline (LSA, ASR, BitLocker prompt, Sysmon, SMB1, LLMNR)
+  # Each sub-step is individually gated by its own option so users can pick a la carte;
+  # the Security profile checkbox page pre-enables the relevant options.
+  - !task: {path: 'tweaks\enterprise\enterprise.yml'}
 
 
 

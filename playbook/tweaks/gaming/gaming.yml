@@ -1,0 +1,17 @@
+---
+title: Gaming Latency Tweaks
+description: |
+  Aggregated gaming/latency tweaks. Controlled by the 'gaming-performance'
+  option (pre-selected in the Performance profile). Each individual tweak
+  can be toggled post-install via the matching revert script.
+appliesTo:
+  minBuild: 22000
+sources:
+  - https://learn.microsoft.com/en-us/windows/win32/multimedia/multimedia-timers
+  - https://devblogs.microsoft.com/directx/hardware-accelerated-gpu-scheduling/
+actions:
+  - !writeStatus: {status: 'Running gaming/latency tweaks', option: 'gaming-performance'}
+  - !task: {path: 'timer-resolution.yml', option: 'gaming-performance'}
+  - !task: {path: 'power-plan.yml'}
+  - !task: {path: 'hags-toggle.yml', option: 'gaming-performance'}
+  - !task: {path: 'disable-core-parking.yml', option: 'gaming-performance'}

@@ -1,0 +1,28 @@
+---
+title: Hardware Accelerated GPU Scheduling (HAGS)
+description: |
+  Enables HAGS and "Optimizations for windowed games" (24H2+ feature).
+  These measurably reduce GPU latency on supported GPU/driver combinations.
+  Tied to the 'gaming-performance' option; users can toggle post-install.
+appliesTo:
+  minBuild: 22000
+sources:
+  - https://devblogs.microsoft.com/directx/hardware-accelerated-gpu-scheduling/
+  - https://devblogs.microsoft.com/directx/optimizations-for-windowed-games/
+actions:
+  - !writeStatus: {status: 'Enabling HAGS and optimizations for windowed games (Performance profile)', option: 'gaming-performance'}
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers'
+    value: 'HwSchMode'
+    data: '2'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\DirectX\UserGpuPreferences'
+    value: 'SwapEffectUpgradeCache'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\Software\Microsoft\DirectX\GraphicsSettings'
+    value: 'SwapEffectUpgradeEnable'
+    data: '1'
+    type: REG_DWORD

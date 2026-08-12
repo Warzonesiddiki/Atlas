@@ -1,0 +1,29 @@
+---
+title: High Resolution Timer
+description: |
+  Sets Windows timer resolution to 0.5ms using SetTimerResolution.exe from the
+  AtlasModules\Tools directory with a scheduled task that runs at logon.
+  Measured reduction in micro-stutter in some games; may increase idle power
+  draw so this is only enabled in the Performance profile.
+  Revert script stops the scheduled task and restores default timer behaviour.
+appliesTo:
+  minBuild: 22000
+sources:
+  - https://learn.microsoft.com/en-us/windows/win32/api/timeapi/
+  - https://github.com/Atlas-OS/Atlas (bundled SetTimerResolution.exe)
+actions:
+  - !writeStatus: {status: 'Setting high-resolution timer'}
+  - !powerShell:
+    command: |
+      $windir = [Environment]::GetFolderPath('Windows')
+      $exe = "$windir\AtlasModules\Tools\SetTimerResolution.exe"
+      if (Test-Path $exe) {
+          $action  = New-ScheduledTaskAction -Execute $exe -Argument '--resolution 5000 --no-console'
+          $trigger = New-ScheduledTaskTrigger -AtLogOn
+          $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Highest
+          $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+          Register-ScheduledTask -TaskName 'AtlasTimerResolution' -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
+          Start-ScheduledTask -TaskName 'AtlasTimerResolution'
+      }
+    wait: true
+    runas: currentUserElevated

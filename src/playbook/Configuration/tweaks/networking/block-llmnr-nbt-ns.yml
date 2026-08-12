@@ -1,0 +1,28 @@
+---
+title: Block LLMNR and NetBIOS Name Services
+description: |
+  Disables LLMNR and NetBIOS name resolution to prevent local network name
+  spoofing / NTLM relay attacks. Applied in Security-Focused profile and in
+  networking hardened tier. Can break legacy local-name resolution; revert
+  script available.
+sources:
+  - https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.DNSClient::Turn_Off_Multicast
+appliesTo:
+  minBuild: 22000
+actions:
+  - !writeStatus: {status: 'Disabling LLMNR and NetBIOS-NS'}
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient'
+    value: 'EnableMulticast'
+    data: '0'
+    type: REG_DWORD
+  - !powerShell:
+    command: |
+      $nics = Get-CimInstance Win32_NetworkAdapterConfiguration -Filter "IPEnabled='True'"
+      foreach ($n in $nics) {
+          # NetbiosOptions: 2 = Disable NetBIOS over TCP/IP
+          $n.SetTcpipNetbios(2) | Out-Null
+      }
+      Set-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters' -Name 'NodeType' -Value 2 -Type DWord -Force
+    wait: true
+    runas: currentUserElevated

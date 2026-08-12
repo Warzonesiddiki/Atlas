@@ -1,13 +1,14 @@
 ---
-title: Disable Microsoft Copilot
-description: Disables Microsoft Copilot as it depends on Edge, as well it collecting data and not being used by most users
+title: Disable Microsoft Copilot (taskbar button)
+description: |
+  Hides the Copilot taskbar button by default. Removal of the Copilot app and
+  AI feature set is handled by `tweaks\ai\disable-copilot-app.yml` when the
+  'disable-copilot' / 'disable-ai' options are selected.
 builds: [ '>=22000' ]
 actions:
-    # Doesn't work with HKLM
   - !registryValue:
-    path: 'HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot'
-    value: 'TurnOffWindowsCopilot'
-    data: '1'
+    path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'ShowCopilotButton'
+    data: '0'
     type: REG_DWORD
-    
     

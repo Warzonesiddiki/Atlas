@@ -1,0 +1,44 @@
+---
+title: Disable Copilot (App + policies)
+description: |
+  Removes the Microsoft Copilot AppX package, hides the taskbar button, and
+  disables Copilot via policy. Requires the 'disable-copilot' option (Security
+  and Privacy profiles pre-select it; Balanced users can still toggle via the
+  Atlas folder). The taskbar button alone is hidden in all profiles by the
+  legacy QoL tweak.
+sources:
+  - https://learn.microsoft.com/en-us/windows/configuration/
+appliesTo:
+  minBuild: 22621
+  maxBuild: 99999
+actions:
+  - !writeStatus: {status: 'Removing Microsoft Copilot (opt-in)', option: 'disable-copilot'}
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot'
+    value: 'TurnOffWindowsCopilot'
+    data: '1'
+    type: REG_DWORD
+    option: 'disable-copilot'
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot'
+    value: 'TurnOffWindowsCopilot'
+    data: '1'
+    type: REG_DWORD
+    option: 'disable-copilot'
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot'
+    value: 'TurnOffCopilot'
+    data: '1'
+    type: REG_DWORD
+    option: 'disable-copilot'
+  - !powerShell:
+    command: |
+      Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue |
+          Where-Object { $_.Name -like 'Microsoft.Copilot*' } |
+          Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
+      Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue |
+          Where-Object DisplayName -like '*Copilot*' |
+          Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Out-Null
+    wait: true
+    runas: currentUserElevated
+    option: 'disable-copilot'

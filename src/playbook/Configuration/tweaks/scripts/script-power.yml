@@ -1,6 +1,10 @@
 ---
 title: Configure Power Settings
-description: Executes script to configure power settings for the best performance, especially focusing on the lowest latency e.g. by reducing any potential jitter
+description: |
+  Configures power settings (hibernation, fast startup, power-saving, active plan).
+  Respects the active profile set by atlasset-profile.yml:
+    - Performance (or 'disable-power-saving' option): keep High Performance / apply power-saving off.
+    - All other profiles: use Balanced, unless the user disabled power-saving.
 actions:
     # Disable power saving features
   - !cmd:
@@ -11,7 +15,7 @@ actions:
     runas: currentUserElevated
     option: 'disable-power-saving'
 
-    # Disable Fast Startup
+    # Disable Fast Startup (always)
   - !registryValue:
     path: 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power'
     value: 'HiberbootEnabled'
@@ -28,5 +32,31 @@ actions:
     runas: currentUserElevated
     option: 'disable-hibernation'
 
-    # Set 'Balanced' power scheme if keeping power saving
-  - !run: {exe: 'powercfg.exe', args: '/setactive "381b4222-f694-41f0-9685-ff5bb260df2e"', option: '!disable-power-saving'}
+    # Set active power scheme based on profile.
+    # If user explicitly chose disable-power-saving, set High Performance;
+    # if user is on performance profile (gaming-performance option), keep High Performance;
+    # otherwise default to Balanced.
+  - !powerShell:
+    command: |
+      $highPerf = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'
+      $balanced = '381b4222-f694-41f0-9685-ff5bb260df2e'
+      $optsKey = 'HKLM:\SOFTWARE\AtlasOS\SetupOptions'
+      $profileKey = 'HKLM:\SOFTWARE\AtlasOS\Profile'
+      $profile = 'balanced'
+      if (Test-Path $profileKey) {
+          $p = (Get-ItemProperty $profileKey -ErrorAction SilentlyContinue).Current
+          if ($p) { $profile = $p }
+      }
+      $desired = $balanced
+      if ($profile -eq 'performance') { $desired = $highPerf }
+      # disable-power-saving option was checked earlier by Atlas via FeaturePages;
+      # it leaves the scheme set to the performance plan. We don't override it here.
+      # Ensure scheme exists and activate.
+      $existing = powercfg /l
+      if ($existing -notmatch [regex]::Escape($desired)) {
+          powercfg -duplicatescheme $desired *>$null
+      }
+      powercfg -setactive $desired
+      Write-Host "Final active power scheme set for profile '$profile'."
+    wait: true
+    runas: currentUserElevated

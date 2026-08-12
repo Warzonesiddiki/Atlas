@@ -7,6 +7,10 @@ actions:
     command: 'reg load HKU\AME_UserHive_Default C:\Users\Default\NTUSER.DAT'
     oobe: false
     wait: true
+
+  # Pre-flight: kill known VC-runtime lockers (#1509), validate build, warn on pending reboot
+  - !task: { path: 'atlas\preflight.yml' }
+
   - !writeStatus: { status: "Deleting old AtlasOS folders" }
   - !powerShell:
     command: '.\STOPFOLDERPROC.ps1'
@@ -38,10 +42,26 @@ actions:
       }
       Start-Process -FilePath """$windir\AtlasDesktop\6. Advanced Configuration\Process Explorer\Uninstall Process Explorer.cmd""" -ArgumentList "/silent" -WindowStyle Hidden
       Copy-Item -Path 'Themes\*' -Destination """$windir\Resources\Themes""" -Force -Recurse
+      # Ensure Logs/Other dirs exist for Atlas module/diagnostics
+      $logs = "$windir\AtlasModules\Logs"
+      $other = "$windir\AtlasModules\Other"
+      foreach ($d in @($logs, $other)) { if (!(Test-Path $d)) { New-Item -Path $d -ItemType Directory -Force | Out-Null } }
     weight: 10
     wait: true
     exeDir: true
     handleExitCodes: { "!0": halt }
+
+  # Initialise the Atlas shared library (logging, helpers, safe registry calls)
+  - !task: { path: 'atlas\init-libraries.yml' }
+
+  # Persist the user's profile radio selection (balanced/performance/privacy/security)
+  # so later tweaks can read HKLM:\SOFTWARE\AtlasOS\Profile\Current
+  - !task: { path: 'atlas\set-profile.yml' }
+
+  # Apply profile-driven defaults for NEW options (gaming/AI/enterprise hardening)
+  # that don't have dedicated legacy radio pages. User selections on subsequent
+  # pages override these writes because their own steps run later.
+  - !task: { path: 'atlas\profile-defaults.yml' }
 
   # Prevent annoying notifications during deployment
   - !cmd:
@@ -76,6 +96,7 @@ actions:
   - !task: { path: 'atlas\services.yml' }
   - !task: { path: 'atlas\components.yml' }
   - !task: { path: 'atlas\appx.yml' }
+  - !task: { path: 'atlas\repair-store.yml' }
   - !task: { path: 'atlas\default.yml' }
   - !task: { path: 'atlas\revert.yml' }
   - !task: { path: "tweaks.yml" }
@@ -110,3 +131,31 @@ actions:
     value: 'ExecutionPolicy'
     data: 'RemoteSigned'
     type: REG_SZ
+
+  # Post-install health check (writes a JSON report to AtlasModules\Logs; non-blocking)
+  # When healthy pops a toast; when warnings are found writes them to the desktop.
+  - !writeStatus: { status: "Running post-install health check" }
+  - !powerShell:
+    command: |
+      $windir = [Environment]::GetFolderPath('Windows')
+      $hp = "$windir\AtlasModules\Scripts\Health\Start-AtlasHealthCheck.ps1"
+      $toast = "$windir\AtlasModules\Scripts\Health\Show-AtlasToast.ps1"
+      $report = $null
+      if (Test-Path $hp) {
+          try {
+              $report = & $hp -ExportReport -PassThru -ErrorAction SilentlyContinue
+          } catch {}
+      }
+      $title = 'AtlasOS installed'
+      if ($report -and $report.Failed -gt 0) {
+          $msg = "Install complete, but $($report.Failed) health check(s) failed. Report exported to AtlasModules\Logs."
+      } elseif ($report -and $report.Warnings -gt 0) {
+          $msg = "Install complete with $($report.Warnings) warning(s). See AtlasModules\Logs for details."
+      } else {
+          $msg = 'Installation finished. See the Atlas folder on your Desktop to start exploring.'
+      }
+      if (Test-Path $toast) {
+          & $toast -Title $title -Message $msg -ErrorAction SilentlyContinue
+      }
+    wait: true
+    runas: currentUserElevated

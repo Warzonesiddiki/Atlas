@@ -1,0 +1,22 @@
+---
+title: Disable AI Actions (File Explorer)
+description: |
+  Disables the 25H2+ "AI Actions" context menu in File Explorer that routes
+  selections through Copilot. Safe no-op on builds that don't have this feature.
+appliesTo:
+  minBuild: 26200
+  maxBuild: 99999
+sources:
+  - https://learn.microsoft.com/en-us/windows/whats-new/whats-new-windows-11-version-25h2
+actions:
+  - !writeStatus: {status: 'Disabling AI Actions in File Explorer'}
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+    value: 'DisableAIActions'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    value: 'AIActionsEnabled'
+    data: '0'
+    type: REG_DWORD

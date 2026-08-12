@@ -1,0 +1,16 @@
+---
+title: Initialise Atlas Libraries
+description: Ensures the Atlas shared PowerShell module is importable and the log directory exists
+actions:
+  - !writeStatus: {status: 'Initialising Atlas libraries'}
+  - !powerShell:
+    command: |
+      $modules = "$([Environment]::GetFolderPath('Windows'))\AtlasModules"
+      $logDir = Join-Path $modules 'Logs'
+      if (!(Test-Path $logDir)) { New-Item -Path $logDir -ItemType Directory -Force | Out-Null }
+      $otherDir = Join-Path $modules 'Other'
+      if (!(Test-Path $otherDir)) { New-Item -Path $otherDir -ItemType Directory -Force | Out-Null }
+      Import-Module "$modules\Scripts\Lib\Atlas\Atlas.psd1" -Force -ErrorAction Stop
+      Write-Host 'Atlas module loaded.'
+    wait: true
+    runas: currentUserElevated

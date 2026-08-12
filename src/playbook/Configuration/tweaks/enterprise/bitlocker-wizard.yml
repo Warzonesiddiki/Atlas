@@ -1,0 +1,47 @@
+---
+title: BitLocker Prompt (one-shot)
+description: |
+  Schedules a one-time prompt at first logon to enable BitLocker on the
+  system drive (TPM-only, UsedSpaceOnly). Only registered when the
+  'bitlocker-prompt' option is selected (Security profile).
+  Safe no-op on devices without a TPM 2.0 (BitLocker will report an error
+  and the scheduled task is then removed).
+appliesTo:
+  minBuild: 22000
+sources:
+  - https://learn.microsoft.com/en-us/windows/security/operating-system-security/data-protection/bitlocker/
+actions:
+  - !writeStatus: {status: 'Scheduling BitLocker enable prompt', option: 'bitlocker-prompt'}
+  - !powerShell:
+    command: |
+      $modules = "$([Environment]::GetFolderPath('Windows'))\AtlasModules"
+      Import-Module "$modules\Scripts\Lib\Atlas\Atlas.psd1" -Force
+
+      $scriptDir = "$modules\Scripts\Security"
+      if (-not (Test-Path $scriptDir)) {
+          New-Item -ItemType Directory -Path $scriptDir -Force | Out-Null
+      }
+      $scriptPath = Join-Path $scriptDir 'Enable-BitlockerPrompt.ps1'
+
+      $promptScript = @(
+          '$tpm = Get-Tpm -ErrorAction SilentlyContinue',
+          'if (-not $tpm -or -not $tpm.TpmPresent -or -not $tpm.TpmReady) {',
+          '    Unregister-ScheduledTask -TaskName "AtlasBitlockerPrompt" -Confirm:$false -ErrorAction SilentlyContinue',
+          '    exit 0',
+          '}',
+          'try {',
+          '    Enable-BitLocker -MountPoint $env:SystemDrive -TpmProtector -UsedSpaceOnly -ErrorAction Stop',
+          '    Resume-BitLocker -MountPoint $env:SystemDrive -ErrorAction SilentlyContinue',
+          '} catch {',
+          '    # Non-fatal; user can enable manually from Settings.',
+          '}',
+          'Unregister-ScheduledTask -TaskName "AtlasBitlockerPrompt" -Confirm:$false -ErrorAction SilentlyContinue'
+      ) -join [Environment]::NewLine
+      Set-Content -Path $scriptPath -Value $promptScript -Encoding UTF8
+
+      $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoP -NonI -ExecutionPolicy Bypass -File `"$scriptPath`""
+      $trigger = New-ScheduledTaskTrigger -AtLogOn
+      $principal = New-ScheduledTaskPrincipal -GroupId 'BUILTIN\Administrators' -RunLevel Highest
+      Register-ScheduledTask -TaskName 'AtlasBitlockerPrompt' -Action $action -Trigger $trigger -Principal $principal -Description 'One-time Atlas BitLocker enable prompt' -Force | Out-Null
+    wait: true
+    runas: currentUserElevated
