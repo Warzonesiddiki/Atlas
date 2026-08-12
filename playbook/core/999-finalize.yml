@@ -1,0 +1,13 @@
+---
+# Phase: 999-finalize
+title: Finalize — Health Check & Toast
+description: Post-install validation, health export, silent toast.
+profileReference: 'HKLM\SOFTWARE\AtlasOS\Profile\Current'
+phases:
+  - core/090-health.yml
+actions:
+  - !writeStatus: {status: 'Atlas install finalized; health check running'}
+  - !powerShell:
+    command: '.\Health\Start-AtlasHealthCheck.ps1 -PassThru'
+    wait: true
+    weight: 20
