@@ -1,0 +1,27 @@
+---
+name: balanced
+label: Balanced (recommended)
+description: |
+  The default profile. Privacy on, security on, quality-of-life tweaks on,
+  performance set to stock + low-risk tweaks. Works great on laptops and
+  desktops; least likely to cause compatibility issues.
+defaults:
+  defender-enable: true
+  mitigations-default: true
+  auto-updates-default: true
+  disable-hibernation: false
+  disable-power-saving: false
+  disable-core-isolation: false
+  remove-snipping-tool: false
+  uninstall-edge: false
+  install-another-browser: false
+  install-toolbox: true
+includeTweaks:
+  - privacy.*
+  - qol.*
+  - networking.recommended
+  - performance.safe
+excludeTweaks:
+  - gaming.*
+  - security.enterprise.*
+  - privacy.hardened-hosts

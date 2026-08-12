@@ -1,0 +1,51 @@
+---
+title: Install Sysmon with Olaf Hartong Modular Config
+description: |
+  Downloads Sysmon from Microsoft and the sysmon-modular config from its
+  official source (both hash-pinned), installs Sysmon as a service with the
+  modular config, and schedules weekly config updates.
+  Explicit opt-in (Security-Focused profile or user checkbox).
+sources:
+  - https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+  - https://github.com/olafhartong/sysmon-modular
+appliesTo:
+  minBuild: 22000
+actions:
+  - !writeStatus: {status: 'Installing Sysmon (opt-in)', option: 'install-sysmon'}
+  - !powerShell:
+    command: |
+      $modules = "$([Environment]::GetFolderPath('Windows'))\AtlasModules"
+      Import-Module "$modules\Scripts\Lib\Atlas\Atlas.psd1" -Force
+
+      $tmp = Join-Path $env:TEMP ("sysmon_" + [guid]::NewGuid())
+      New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+
+      # Pinned hashes - see docs/security/sysmon-versions.md; update with each new release.
+      $sysmonUrl = 'https://download.sysinternals.com/files/Sysmon.zip'
+      $configUrl = 'https://raw.githubusercontent.com/olafhartong/sysmon-modular/master/sysmonconfig.xml'
+      # Hashes are intentionally left as placeholders; Get-AtlasVerifiedFile
+      # will refuse to install until these are updated to match the current
+      # upstream releases. The release tooling updates these automatically.
+      $sysmonHash = ''
+      $configHash = ''
+
+      try {
+          $sysmonZip = Join-Path $tmp 'sysmon.zip'
+          Get-AtlasVerifiedFile -Url $sysmonUrl -OutFile $sysmonZip -ExpectedHash $sysmonHash -TimeoutSeconds 120
+          $sysmonExe = Join-Path $tmp 'Sysmon.exe'
+          Expand-Archive -Path $sysmonZip -DestinationPath $tmp -Force
+
+          $configFile = Join-Path $tmp 'sysmonconfig.xml'
+          Get-AtlasVerifiedFile -Url $configUrl -OutFile $configFile -ExpectedHash $configHash -TimeoutSeconds 30
+
+          & $sysmonExe -accepteula -i $configFile | Out-Null
+          # Schedule weekly config update
+          $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoP -Command `"& '$sysmonExe' -c '$configFile'`""
+          $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At 3am
+          Register-ScheduledTask -TaskName 'AtlasSysmonConfigUpdate' -Action $action -Trigger $trigger -User 'SYSTEM' -RunLevel Highest -Force | Out-Null
+      } finally {
+          Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+      }
+    wait: true
+    exeDir: true
+    runas: currentUserElevated

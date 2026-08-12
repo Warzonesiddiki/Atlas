@@ -1,0 +1,22 @@
+---
+title: Enable LSASS Protection (RunAsPPL)
+description: |
+  Enables Local Security Authority (LSA) protection as a UEFI/registry flag to
+  reduce credential theft by requiring LSASS to run as a Protected Process
+  Light (PPL). Requires Secure Boot. Applied in the Security-Focused profile.
+sources:
+  - https://learn.microsoft.com/en-us/windows-server/security/credentials-protection-and-management/configuring-additional-lsa-protection
+appliesTo:
+  minBuild: 22000
+actions:
+  - !writeStatus: {status: 'Enabling LSA protection (RunAsPPL)'}
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Lsa'
+    value: 'RunAsPPL'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Lsa'
+    value: 'RunAsPPLBoot'
+    data: '1'
+    type: REG_DWORD

@@ -1,0 +1,37 @@
+---
+title: Power Plan (profile-driven)
+description: |
+  Switches the active power plan based on the current profile:
+    - Balanced / Privacy / Security  → Windows default "Balanced"
+    - Performance                    → "High Performance" (duplicates Ultimate Performance scheme if present)
+  Auto-detects laptops and keeps Balanced on them unless the Performance
+  profile is explicitly chosen. Laptop users get a warning toast.
+appliesTo:
+  minBuild: 22000
+sources:
+  - https://learn.microsoft.com/en-us/windows/win32/power/power-policy-settings
+actions:
+  - !writeStatus: {status: 'Configuring power plan for the active profile'}
+  - !powerShell:
+    command: |
+      # Detect form factor
+      $cs = Get-CimInstance Win32_ComputerSystem
+      $isLaptop = $cs.PCSystemType -eq 2 -or (Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue)
+
+      # Read profile; default to balanced
+      $profileKey = 'HKLM:\SOFTWARE\AtlasOS\Profile'
+      $profile = if (Test-Path $profileKey) { (Get-ItemProperty $profileKey).Current } else { 'balanced' }
+
+      $desired = switch ($profile) {
+          'performance' { '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' }  # High Performance
+          default       { '381b4222-f694-41f0-9685-ff5bb260df2e' }  # Balanced
+      }
+
+      # Ensure the desired scheme exists (some Windows editions omit High Performance)
+      $existing = powercfg /l
+      if ($existing -notmatch $desired) {
+          powercfg -duplicatescheme $desired *>$null
+      }
+      powercfg -setactive $desired
+    wait: true
+    runas: currentUserElevated

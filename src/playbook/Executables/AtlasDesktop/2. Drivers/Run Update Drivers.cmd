@@ -21,5 +21,5 @@ if not exist "%script%" (
 powershell -ExecutionPolicy Bypass -NoProfile -File "%script%"
 
 echo.
-pause > null
+pause > nul
 exit /b 0

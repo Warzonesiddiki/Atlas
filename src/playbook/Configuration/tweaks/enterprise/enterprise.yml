@@ -1,0 +1,21 @@
+---
+title: Enterprise / Security Baseline Tweaks
+description: |
+  Opt-in enterprise-hardening tweaks. Controlled by individual hardening
+  checkboxes (enable-asr, lsa-protection, bitlocker-prompt, install-sysmon).
+  The SMB1 disable and LLMNR/NetBIOS blocks live under `tweaks\networking\`
+  and are wired from the Networking section so they can be selected
+  independently of the enterprise baseline.
+  The Security profile pre-selects all of these options.
+appliesTo:
+  minBuild: 22000
+sources:
+  - https://www.cisecurity.org/benchmark/microsoft_windows_desktop
+  - https://learn.microsoft.com/en-us/windows/security/application-security/application-control/windows-defender-application-control/design/attack-surface-reduction-rules
+actions:
+  - !writeStatus: {status: 'Applying enterprise security baseline (opt-in)'}
+  - !task: {path: 'lsa-protection.yml', option: 'lsa-protection'}
+  - !task: {path: 'no-lmhash.yml', option: 'lsa-protection'}
+  - !task: {path: 'asr-rules.yml', option: 'enable-asr'}
+  - !task: {path: 'sysmon-install.yml', option: 'install-sysmon'}
+  - !task: {path: 'bitlocker-wizard.yml', option: 'bitlocker-prompt'}

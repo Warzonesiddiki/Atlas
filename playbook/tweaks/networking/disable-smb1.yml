@@ -1,0 +1,18 @@
+---
+title: Disable SMB 1.0
+description: |
+  Disables the legacy SMB 1.0 protocol which has multiple critical RCE
+  vulnerabilities (EternalBlue, etc). Recommended for all systems; legacy
+  devices needing SMB1 can re-enable via Windows Features.
+sources:
+  - https://learn.microsoft.com/en-us/windows-server/storage/file-server/troubleshoot/smbv1-not-installed-by-default-in-windows
+appliesTo:
+  minBuild: 22000
+actions:
+  - !writeStatus: {status: 'Disabling SMB 1.0'}
+  - !powerShell:
+    command: |
+      Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -Remove -NoRestart -ErrorAction SilentlyContinue
+      Set-SmbServerConfiguration -EnableSMB1Protocol $false -Force -ErrorAction SilentlyContinue
+    wait: true
+    runas: currentUserElevated

@@ -1,0 +1,17 @@
+---
+title: Disable LM Hash Storage
+description: |
+  Disables storage of LM hashes (trivially crackable legacy password hashes).
+  Applied in Security-Focused profile; also enabled when "disable mitigations"
+  is NOT selected.
+sources:
+  - https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/network-security-do-not-store-lan-manager-hash-value-on-next-password-change
+appliesTo:
+  minBuild: 22000
+actions:
+  - !writeStatus: {status: 'Disabling LM hash storage'}
+  - !registryValue:
+    path: 'HKLM\SYSTEM\CurrentControlSet\Control\Lsa'
+    value: 'NoLMHash'
+    data: '1'
+    type: REG_DWORD

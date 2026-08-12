@@ -1,0 +1,42 @@
+---
+title: Disable AI Image Features
+description: |
+  Disables Cocreator, Image Creator, and Generative Fill in Paint, Photos,
+  and Snipping Tool (24H2+). Safe no-op where the features aren't present.
+sources:
+  - https://learn.microsoft.com/en-us/windows/ai/
+appliesTo:
+  minBuild: 26100
+  maxBuild: 99999
+actions:
+  - !writeStatus: {status: 'Disabling AI image features (Paint Cocreator, etc.)'}
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'
+    value: 'DisableImageCreator'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'
+    value: 'DisableCocreator'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'
+    value: 'DisableGenerativeFill'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\PaintStudio'
+    value: 'DisableImageCreator'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\PaintStudio'
+    value: 'DisableCocreator'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\PaintStudio'
+    value: 'DisableGenerativeFill'
+    data: '1'
+    type: REG_DWORD

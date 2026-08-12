@@ -1,0 +1,35 @@
+---
+title: Record user profile selection
+description: |
+  Persists the selected FeaturePages profile-* radio option into
+  HKLM:\SOFTWARE\AtlasOS\Profile\Current so later tweaks (power plan,
+  gaming, enterprise) can read it. Also writes the corresponding
+  SetupOptions value used by AtlasDesktop scripts.
+  The profile radio pre-selects defaults for other pages via FeaturePages
+  defaults; user overrides on subsequent pages always take precedence.
+actions:
+  - !writeStatus: {status: 'Recording profile selection'}
+  - !registryValue: {path: 'HKLM\SOFTWARE\AtlasOS\Profile', value: 'Current', data: 'balanced', type: REG_SZ, option: 'profile-balanced'}
+  - !registryValue: {path: 'HKLM\SOFTWARE\AtlasOS\Profile', value: 'Current', data: 'performance', type: REG_SZ, option: 'profile-performance'}
+  - !registryValue: {path: 'HKLM\SOFTWARE\AtlasOS\Profile', value: 'Current', data: 'privacy', type: REG_SZ, option: 'profile-privacy'}
+  - !registryValue: {path: 'HKLM\SOFTWARE\AtlasOS\Profile', value: 'Current', data: 'security', type: REG_SZ, option: 'profile-security'}
+  - !powerShell:
+    command: |
+      $ErrorActionPreference = 'SilentlyContinue'
+      $key = 'HKLM:\SOFTWARE\AtlasOS\Profile'
+      if (!(Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
+      $existing = Get-ItemProperty -Path $key -Name 'Current' -ErrorAction SilentlyContinue
+      if (-not $existing -or -not $existing.Current) {
+          Set-ItemProperty -Path $key -Name 'Current' -Value 'balanced' -Type String -Force
+      }
+      $profile = (Get-ItemProperty $key).Current
+      Set-ItemProperty -Path $key -Name 'SetAt' -Value (Get-Date -Format 'o') -Type String -Force
+
+      # Mirror to SetupOptions for any AtlasDesktop scripts that read it.
+      $so = 'HKLM:\SOFTWARE\AtlasOS\SetupOptions'
+      if (!(Test-Path $so)) { New-Item -Path $so -Force | Out-Null }
+      Set-ItemProperty -Path $so -Name 'Profile' -Value $profile -Type String -Force
+
+      Write-Host "Atlas profile set to: $profile"
+    wait: true
+    runas: currentUserElevated

@@ -1,0 +1,131 @@
+---
+title: Apply profile-driven option defaults
+description: |
+  When a user picks a profile radio on page 1, AME Wizard does NOT auto-tick
+  later option checkboxes. This step writes registry markers for downstream
+  scripts that read HKLM\SOFTWARE\AtlasOS\SetupOptions directly, and applies
+  profile-wide defaults (defender/mitigations/updates) that were not
+  overridden on later pages. Per-option user selections on subsequent pages
+  always win because their own !registryValue writes run AFTER this step.
+actions:
+  - !writeStatus: {status: 'Applying profile defaults'}
+  - !powerShell:
+    command: |
+      $ErrorActionPreference = 'SilentlyContinue'
+      $key = 'HKLM:\SOFTWARE\AtlasOS\Profile'
+      $so  = 'HKLM:\SOFTWARE\AtlasOS\SetupOptions'
+      foreach ($k in @($key, $so)) { if (!(Test-Path $k)) { New-Item -Path $k -Force | Out-Null } }
+      $profile = (Get-ItemProperty $key -ErrorAction SilentlyContinue).Current
+      if (-not $profile) { $profile = 'balanced'; Set-ItemProperty $key -Name Current -Value $profile -Type String -Force }
+
+      # Defaults per profile. Values only written when not already set by a
+      # FeaturePages radio (radio writes always run BEFORE this step because
+      # they have concrete option: tags evaluated when pages are committed).
+      $defaults = switch ($profile) {
+          'performance' {
+              @{
+                  defender    = 'defender-disable'
+                  mitigations = 'mitigations-disable'
+                  updates     = 'auto-updates-disable'
+                  hibernation = '1'
+                  powersave   = '1'
+                  coreiso     = '1'
+                  gaming      = '1'
+                  ai          = '1'
+                  copilot     = '1'
+                  smb1        = '0'
+                  harden      = '0'
+                  asr         = '0'
+                  lsa         = '0'
+                  bitlocker   = '0'
+                  sysmon      = '0'
+              }
+          }
+          'privacy' {
+              @{
+                  defender    = 'defender-disable'
+                  mitigations = 'mitigations-default'
+                  updates     = 'auto-updates-disable'
+                  hibernation = '0'
+                  powersave   = '0'
+                  coreiso     = '0'
+                  gaming      = '0'
+                  ai          = '1'
+                  copilot     = '1'
+                  smb1        = '0'
+                  harden      = '1'
+                  asr         = '0'
+                  lsa         = '0'
+                  bitlocker   = '0'
+                  sysmon      = '0'
+              }
+          }
+          'security' {
+              @{
+                  defender    = 'defender-enable'
+                  mitigations = 'mitigations-default'
+                  updates     = 'auto-updates-default'
+                  hibernation = '0'
+                  powersave   = '0'
+                  coreiso     = '0'
+                  gaming      = '0'
+                  ai          = '1'
+                  copilot     = '1'
+                  smb1        = '1'
+                  harden      = '1'
+                  asr         = '1'
+                  lsa         = '1'
+                  bitlocker   = '1'
+                  sysmon      = '0'
+              }
+          }
+          default { # balanced
+              @{
+                  defender    = 'defender-enable'
+                  mitigations = 'mitigations-default'
+                  updates     = 'auto-updates-disable'
+                  hibernation = '0'
+                  powersave   = '0'
+                  coreiso     = '0'
+                  gaming      = '0'
+                  ai          = '0'
+                  copilot     = '0'
+                  smb1        = '0'
+                  harden      = '0'
+                  asr         = '0'
+                  lsa         = '0'
+                  bitlocker   = '0'
+                  sysmon      = '0'
+              }
+          }
+      }
+
+      # Map option names -> SetupOptions registry values for diagnostic/toggle use.
+      # Note: FeaturePages radios for defender/mitigations/updates are handled by
+      # their own YAML files; we only store the profile defaults here for the
+      # new options that don't have dedicated legacy code paths.
+      foreach ($opt in @('gaming','ai','copilot','smb1','harden','asr','lsa','bitlocker','sysmon','hibernation','powersave','coreiso')) {
+          $v = $defaults[$opt]
+          $name = switch ($opt) {
+              'gaming'    { 'GamingPerformance' }
+              'ai'        { 'DisableAI' }
+              'copilot'   { 'DisableCopilot' }
+              'smb1'      { 'DisableSmb1' }
+              'harden'    { 'HardenNetworking' }
+              'asr'       { 'EnableAsr' }
+              'lsa'       { 'LsaProtection' }
+              'bitlocker' { 'BitlockerPrompt' }
+              'sysmon'    { 'InstallSysmon' }
+              'hibernation' { 'DisableHibernation' }
+              'powersave' { 'DisablePowerSaving' }
+              'coreiso'   { 'DisableCoreIsolation' }
+          }
+          # Don't overwrite if already written (e.g. if a future explicit page sets it).
+          $existing = Get-ItemProperty -Path $so -Name $name -ErrorAction SilentlyContinue
+          if (-not $existing -or $existing.$name -eq $null) {
+              Set-ItemProperty -Path $so -Name $name -Value $v -Type DWord -Force
+          }
+      }
+      Write-Host "Profile defaults applied for profile: $profile"
+    wait: true
+    runas: currentUserElevated

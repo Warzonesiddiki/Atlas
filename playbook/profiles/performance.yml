@@ -1,0 +1,29 @@
+---
+name: performance
+label: Performance
+description: |
+  Gaming / workstation bias. Disables mitigations by choice (clear security
+  warning shown at install), disables hibernation and power saving, enables
+  high resolution timer, HAGS, High Performance power plan, core parking
+  disable, and VBS off. Security trade-offs are explicitly labeled in the UI.
+defaults:
+  defender-enable: true
+  mitigations-disable: true
+  auto-updates-disable: true
+  disable-hibernation: true
+  disable-power-saving: true
+  disable-core-isolation: true
+  remove-snipping-tool: false
+  uninstall-edge: false
+  install-another-browser: true
+  install-toolbox: true
+includeTweaks:
+  - privacy.*
+  - qol.*
+  - networking.recommended
+  - performance.all
+  - gaming.*
+  - ai.*
+excludeTweaks:
+  - security.enterprise.*
+  - privacy.hardened-hosts

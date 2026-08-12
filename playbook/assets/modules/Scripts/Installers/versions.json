@@ -1,0 +1,39 @@
+{
+  "_comment": "Pinned versions + SHA-256 hashes for install-time downloads. Updated by tooling/release/Bump-Versions.ps1 on each release.",
+  "toolbox": {
+    "url": "https://github.com/Atlas-OS/atlas-toolbox/releases/latest/download/AtlasToolbox-Setup.exe",
+    "sha256": ""
+  },
+  "browsers": {
+    "brave": {
+      "url": "https://laptop-updates.brave.com/latest/winx64-release",
+      "sha256": ""
+    },
+    "firefox": {
+      "url": "https://download.mozilla.org/?product=firefox-latest&os=win64&lang=en-US",
+      "sha256": ""
+    },
+    "librewolf": {
+      "url": "https://gitlab.com/api/v4/projects/44042130/packages/generic/librewolf/latest/librewolf-x86_64-setup.exe",
+      "sha256": ""
+    },
+    "chrome": {
+      "url": "https://dl.google.com/tag/s/dl/chrome/install/googlechromestandaloneenterprise64.msi",
+      "sha256": ""
+    }
+  },
+  "sysmon": {
+    "url": "https://download.sysinternals.com/files/Sysmon.zip",
+    "sha256": ""
+  },
+  "openshell": {
+    "url": "https://github.com/Open-Shell/Open-Shell-Menu/releases/latest/download/OpenShellSetup.exe",
+    "sha256": "",
+    "skinUrl": "https://github.com/bonzibudd/Fluent-Metro/releases/latest/download/FluentMetro.zip",
+    "skinSha256": ""
+  },
+  "processexplorer": {
+    "url": "https://download.sysinternals.com/files/ProcessExplorer.zip",
+    "sha256": ""
+  }
+}

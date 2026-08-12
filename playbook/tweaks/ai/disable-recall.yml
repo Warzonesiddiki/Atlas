@@ -1,0 +1,50 @@
+---
+title: Disable Windows Recall
+description: |
+  Disables and removes Windows Recall (Copilot+ PC snapshot feature).
+  Uses Group Policy, registry, and DISM optional-feature removal.
+  On non-Copilot+ PCs (where Recall was never installed) the tweak is a
+  safe no-op and records the preventative policies so that future Windows
+  updates cannot enable Recall silently.
+sources:
+  - https://learn.microsoft.com/en-us/windows/ai/
+  - https://winslop.io/how-to (community-verified keys)
+appliesTo:
+  minBuild: 26100
+  maxBuild: 99999
+actions:
+  - !writeStatus: {status: 'Disabling Windows Recall (safe no-op on non-Copilot+ PCs)'}
+
+  # ---- Preventative policies (apply everywhere) --------------------------------
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'
+    value: 'AllowRecallEnablement'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'
+    value: 'DisableAIDataAnalysis'
+    data: '1'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'
+    value: 'AllowRecallEnablement'
+    data: '0'
+    type: REG_DWORD
+  - !registryValue:
+    path: 'HKCU\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'
+    value: 'DisableAIDataAnalysis'
+    data: '1'
+    type: REG_DWORD
+
+  # ---- Disable the Recall snapshot service if present -------------------------
+  - !powerShell:
+    command: |
+      $svc = Get-Service -Name 'RecallService' -ErrorAction SilentlyContinue
+      if ($svc) {
+          Stop-Service -Name 'RecallService' -Force -ErrorAction SilentlyContinue
+          Set-Service -Name 'RecallService' -StartupType Disabled
+      }
+      try { Disable-WindowsOptionalFeature -Online -FeatureName 'Recall' -Remove -NoRestart -ErrorAction SilentlyContinue | Out-Null } catch {}
+    wait: true
+    runas: currentUserElevated

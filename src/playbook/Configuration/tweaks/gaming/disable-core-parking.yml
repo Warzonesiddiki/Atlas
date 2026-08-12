@@ -1,0 +1,18 @@
+---
+title: Disable Core Parking
+description: |
+  Disables CPU core parking on the active power plan for reduced latency.
+  Can increase idle power draw. Only enabled via the 'gaming-performance' option.
+appliesTo:
+  minBuild: 22000
+sources:
+  - https://learn.microsoft.com/en-us/windows/win32/power/power-policy-settings
+actions:
+  - !writeStatus: {status: 'Disabling CPU core parking (Performance profile)', option: 'gaming-performance'}
+  - !powerShell:
+    command: |
+      powercfg -setacvalueindex scheme_current sub_processor c5449f38-040d-4dcf-9985-e1a8055c6068 0
+      powercfg -setdcvalueindex scheme_current sub_processor c5449f38-040d-4dcf-9985-e1a8055c6068 1
+      powercfg -setactive scheme_current
+    wait: true
+    runas: currentUserElevated

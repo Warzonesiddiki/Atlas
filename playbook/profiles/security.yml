@@ -1,0 +1,32 @@
+---
+name: security
+label: Security-Focused
+description: |
+  Enterprise-aligned hardening. Defender and mitigations forced on, automatic
+  updates enabled, BitLocker prompt, SmartScreen, VBS/HVCI/Core Isolation on,
+  ASR rules enabled for low false-positives, LSA protection. Privacy tweaks
+  are applied only where they don't break Defender for Endpoint/telemetry
+  needed by security tooling.
+defaults:
+  defender-enable: true
+  mitigations-default: true
+  auto-updates-default: true
+  disable-hibernation: false
+  disable-power-saving: false
+  disable-core-isolation: false
+  remove-snipping-tool: false
+  uninstall-edge: false
+  install-another-browser: false
+  install-toolbox: true
+includeTweaks:
+  - privacy.safe
+  - qol.*
+  - networking.hardened
+  - performance.safe
+  - security.enterprise.*
+  - security.asr
+  - security.lsa-protection
+excludeTweaks:
+  - gaming.*
+  - privacy.hardened-hosts
+  - privacy.telmetry-blocking-fw

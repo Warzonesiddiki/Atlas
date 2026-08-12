@@ -1,0 +1,30 @@
+---
+name: privacy
+label: Privacy-Hardened
+description: |
+  Maximum data minimization. Removes/disables telemetry, advertising, Edge,
+  OneDrive, Copilot, Recall, Widgets, AI features, and optional telemetry
+  endpoints. Optional hosts/firewall block rules for telemetry. Windows Update
+  and Defender are disabled by default - clear warnings are shown.
+defaults:
+  defender-enable: false
+  mitigations-default: true
+  auto-updates-disable: true
+  disable-hibernation: false
+  disable-power-saving: false
+  disable-core-isolation: false
+  remove-snipping-tool: false
+  uninstall-edge: true
+  install-another-browser: true
+  install-toolbox: true
+includeTweaks:
+  - privacy.*
+  - privacy.hardened-hosts
+  - qol.*
+  - networking.hardened
+  - performance.safe
+  - ai.*
+  - debloat.*
+excludeTweaks:
+  - gaming.*
+  - security.enterprise.*
