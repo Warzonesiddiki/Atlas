@@ -1,3 +1,4 @@
+@REM Legacy installer - use SOFTWARE-verified.ps1 for hash-pinned downloads (E17)
 param (
     [switch]$Chrome,
     [switch]$Brave,

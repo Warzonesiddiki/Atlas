@@ -1,0 +1,26 @@
+---
+title: Atlas Playbook Root — Ordered Phase Includes
+description: |
+  Replaces legacy custom.yml with numbered core phases per v1.0 blueprint.
+  Each phase is idempotent (Set-AtlasState / detect / revert ready).
+  Ordered from 000 (start) through 999 (finalize / health).
+profileReference: 'HKLM\SOFTWARE\AtlasOS\Profile\Current'
+phases:
+  - core/000-start.yml
+  - core/010-init-modules.yml
+  - core/020-services.yml
+  - core/030-components.yml
+  - core/040-appx.yml
+  - core/050-defaults.yml
+  - core/060-revert.yml
+  - core/070-apply-tweaks.yml
+  - core/080-cleanup.yml
+  - core/090-health.yml
+  - core/999-finalize.yml
+sources:
+  - https://github.com/Warzonesiddiki/Atlas/blob/main/BLUEPRINT.md#E01
+appliesTo:
+  minBuild: 26100
+  maxBuild: 99999
+actions:
+  - !writeStatus: {status: 'Atlas v1.0 root playbook loaded (phases active)'}

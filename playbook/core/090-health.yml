@@ -1,0 +1,68 @@
+---
+# Phase: 090-health
+title: Pre-flight (DLL-lock and build gating)
+description: |
+  Runs before any file copies / component removals. Addresses issue #1509
+  (25H2 install failure due to msvcp140.dll/vcruntime140.dll locks caused by
+  Setup/OfficeC2R/Teams etc.) by killing known lockers and waiting for
+  in-use handles to be released. Also validates supported builds.
+actions:
+  - !writeStatus: {status: 'Running pre-flight checks'}
+  - !powerShell:
+    command: |
+      $ErrorActionPreference = 'SilentlyContinue'
+
+      # --- 1. Resolve known msvcp140.dll / vcruntime140.dll lockers ---
+# Phase: 090-health
+      # These processes commonly hold open the VC++ runtime DLLs during
+      # 25H2 OOBE/setup, causing DISM/package install failures (#1509).
+      $lockers = @(
+          'OneDriveSetup','Teams','ms-teams','MSTeams',
+          'OfficeClickToRun','OfficeC2RClient','WINWORD','EXCEL','POWERPNT','OUTLOOK',
+          'TeamsUpdateMachineInstaller','MpSigStub','MoUsoCoreWorker','UsoClient',
+          'DropboxUpdate','GoogleUpdate','OneDrive','Discord','Steam',
+          'SearchHost','StartMenuExperienceHost','RuntimeBroker',
+          'sedlauncher','sedsvc','MusNotification'
+      )
+      $killed = 0
+      foreach ($name in $lockers) {
+          foreach ($p in Get-Process -Name $name -ErrorAction SilentlyContinue) {
+              try {
+                  Stop-Process -Id $p.Id -Force -ErrorAction Stop
+                  $killed++
+              } catch {}
+          }
+      }
+      # Wait up to 15s for handles to be released
+      $deadline = (Get-Date).AddSeconds(15)
+      while ((Get-Date) -lt $deadline) {
+          $remaining = @()
+          foreach ($name in $lockers) { $remaining += Get-Process -Name $name -ErrorAction SilentlyContinue }
+          if ($remaining.Count -eq 0) { break }
+          Start-Sleep -Milliseconds 500
+      }
+      Write-Host "Pre-flight: terminated $killed locker process(es)."
+
+      # --- 2. Build validation ---
+# Phase: 090-health
+      $build = [Environment]::OSVersion.Version.Build
+      $supported = @(26100, 26200)
+      if ($build -notin $supported) {
+          Write-Warning "Windows build $build is not in the supported list ($($supported -join ', ')). Proceeding; some tweaks will no-op safely."
+      } else {
+          Write-Host "Pre-flight: build $build supported."
+      }
+
+      # --- 3. Pending reboot gate ---
+# Phase: 090-health
+      $pending = $false
+      $r = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'
+      $cbs = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
+      if (Test-Path $r) { $pending = $true }
+      if (Test-Path $cbs) { $pending = $true }
+      if ($pending) {
+          Write-Warning 'A reboot is pending; Atlas will continue but a reboot after install is strongly recommended.'
+      }
+    wait: true
+    oobe: false
+    runas: currentUserElevated

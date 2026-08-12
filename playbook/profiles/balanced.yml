@@ -1,27 +1,34 @@
 ---
-name: balanced
-label: Balanced (recommended)
+title: Balanced Profile (Recommended)
 description: |
-  The default profile. Privacy on, security on, quality-of-life tweaks on,
-  performance set to stock + low-risk tweaks. Works great on laptops and
-  desktops; least likely to cause compatibility issues.
-defaults:
-  defender-enable: true
-  mitigations-default: true
-  auto-updates-default: true
-  disable-hibernation: false
-  disable-power-saving: false
-  disable-core-isolation: false
-  remove-snipping-tool: false
-  uninstall-edge: false
-  install-another-browser: false
-  install-toolbox: true
-includeTweaks:
-  - privacy.*
-  - qol.*
-  - networking.recommended
-  - performance.safe
-excludeTweaks:
-  - gaming.*
-  - security.enterprise.*
-  - privacy.hardened-hosts
+  The default Atlas profile. Privacy on, security on, QoL on,
+  performance = stock + low-risk tweaks. Laptops welcome.
+  Writes SetupOptions defaults and registry key
+  HKLM\SOFTWARE\AtlasOS\Profile\Current = balanced.
+profile: balanced
+featureDefaults:
+  disable-ai: '1'
+  disable-copilot: '1'
+  gaming-performance: '0'
+  disable-smb1: '1'
+  harden-networking: '1'
+  enable-asr: '1'
+  lsa-protection: '1'
+  bitlocker-prompt: '1'
+  install-sysmon: '0'
+registryWrites:
+  - path: 'HKLM\SOFTWARE\AtlasOS\Profile\Current'
+    value: 'CurrentProfile'
+    data: 'balanced'
+    type: REG_SZ
+  - path: 'HKLM\SOFTWARE\AtlasOS\Profile\Mirror'
+    value: 'SetupOptions\Profile'
+    data: 'balanced'
+    type: REG_SZ
+sources:
+  - https://github.com/Warzonesiddiki/Atlas/blob/main/ROADMAP.md#profiles
+appliesTo:
+  minBuild: 26100
+  maxBuild: 99999
+actions:
+  - !writeStatus: {status: 'Applying Balanced profile (recommended)'}
